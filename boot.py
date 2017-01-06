@@ -90,7 +90,7 @@ def import_config():
             for line in config_file:
                 list = line.split(": ")
                 config_dict[list[0]] = list[1].replace("\n", "")
-        print(config_dict)
+        #print(config_dict)
         wifi_ssid = str(config_dict["wifi_ssid"])
         wifi_password = str(config_dict["wifi_password"])
         ap_ssid = str(config_dict["ap_ssid"])
@@ -107,6 +107,8 @@ def import_config():
         datastore_logging_url = str(
             config_dict["datastore_logging_url"]).replace("%3A", ":")
         datastore_logging_url = datastore_logging_url.replace("%2F", "/")
+        datastore_logging_url = datastore_logging_url.replace("%3F", "?")
+        datastore_logging_url = datastore_logging_url.replace("%3D", "=")
 
         if webrepl_enable == "on":
             use_webrepl = True
@@ -173,7 +175,7 @@ def  setup_ap():
 # used at boot. So, this is a true snapshot of the configuration of this device
 
 def build_config_index():
-    print("building HTML")
+    #print("building HTML")
     global wifi_ssid
     global wifi_password
     global ap_ssid
@@ -313,6 +315,7 @@ def post_to_cloud(p):
             print("Socket connected")
             so.send(bytes('GET /%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path,
                                                             host), 'utf8'))
+            #print(host, " ", path)
             data = so.recv(12)
             so.close()
             if data:
@@ -322,7 +325,7 @@ def post_to_cloud(p):
                     if int_retries < 10:
                         print("Retrying...")
                         int_retries += 1
-                        time.sleep_ms(2000)
+                        time.sleep_ms(3000)
                         post_to_cloud(pin_num)
                 data = None
                 result = None
@@ -341,12 +344,17 @@ def post_to_cloud(p):
 def heartbeat(curr_time):
     global time_at_last_heartbeat
 
-    if time.ticks_diff(curr_time, time_at_last_heartbeat) >= \
-            (time_between_heartbeats_in_minutes * 60000) or \
-                    time_at_last_heartbeat == 0:
-
-        flag_queue.insert(0, '    9')
+    if time_at_last_heartbeat == 0:
+        flag_queue.insert(0, '    8')   # "8" signifies power on. We could use
+                                        # this to gather info on operating
+                                        # times or board issues like resets.
         time_at_last_heartbeat = curr_time
+    else:
+        if time.ticks_diff(curr_time, time_at_last_heartbeat) >= \
+            (time_between_heartbeats_in_minutes * 60000):
+
+            flag_queue.insert(0, '    9')
+            time_at_last_heartbeat = curr_time
 
 
 # This is our interrupt handler, also called an Interrupt Service Routine (ISR)
@@ -363,7 +371,7 @@ def irq_handler(p):
     # activity and set the irq_enable flag to True in the main_loop.
 
     if irq_enable:
-        print("IRQ")
+        print("IRQ Received")
         irq_enable = False
         pin_flag = p
 
@@ -402,7 +410,7 @@ def main_loop(**kwargs):
             light.low() # Confirms that we caught a coin switch event
 
         if flag_queue:
-            print(flag_queue)
+            print("flag_queue = ", flag_queue)
             post_to_cloud(flag_queue.pop())
         heartbeat(time.ticks_ms()) # PyCharm doesn't like this, but it's legit
 
