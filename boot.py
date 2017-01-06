@@ -47,7 +47,7 @@ ap_ssid = "MissionCointrol"
 ap_password = "adminDefault"
 time_between_heartbeats_in_minutes = 3
 datastore_fqdn = 'http://data.missionpinball.org/'
-datastore_ip = '127.0.0.1'
+datastore_ip = '54.86.132.254'
 webrepl_enable = "off"
 use_webrepl = False
 
